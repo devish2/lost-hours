@@ -1,0 +1,18 @@
+{
+  "name": "lost-hours",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Lost Hours - privacy-first digital attention tracking",
+  "packageManager": "pnpm@12.5.1",
+  "scripts": {
+    "mobile:start": "pnpm --filter lost-hours-mobile start",
+    "mobile:android": "pnpm --filter lost-hours-mobile android",
+    "mobile:ios": "pnpm --filter lost-hours-mobile ios",
+    "mobile:test": "pnpm --filter lost-hours-mobile test",
+    "mobile:lint": "pnpm --filter lost-hours-mobile lint",
+    "mobile:typecheck": "pnpm --filter lost-hours-mobile typecheck"
+  },
+  "engines": {
+    "node": ">=22.11.0"
+  }
+}

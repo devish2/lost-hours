@@ -1,0 +1,5 @@
+export enum UsageEventType {
+  FOREGROUND = 'FOREGROUND',
+  BACKGROUND = 'BACKGROUND',
+  UNKNOWN = 'UNKNOWN',
+}
