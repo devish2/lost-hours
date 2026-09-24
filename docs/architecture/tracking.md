@@ -9,7 +9,7 @@ Code: `apps/mobile/src/infrastructure/tracking`.
 | Method | Purpose |
 |--------|---------|
 | `getPermissionStatus()` | Normalized access state |
-| `openPermissionSettings()` | Open system settings (native behavior deferred) |
+| `openPermissionSettings()` | Open system Usage Access settings |
 | `getUsageEvents(fromTimestamp, toTimestamp)` | Domain `UsageEvent[]` for **`[from, to)`** |
 
 Requires `fromTimestamp < toTimestamp` or the provider throws.
@@ -28,28 +28,51 @@ Unrecognized native strings map to **UNKNOWN**.
 
 | Provider | Status |
 |----------|--------|
-| `MockUsageTrackingProvider` | Implemented — deterministic events for tests/dev |
-| `AndroidUsageTrackingProvider` | TypeScript adapter over `NativeUsageTrackingModule` |
+| `MockUsageTrackingProvider` | Tests / explicit dev injection only |
+| `AndroidUsageTrackingProvider` | Production Android when native module is registered |
+
+## Composition (D2.4)
+
+`createUsageTrackingComposition()` in `AppProviders` via `UsageTrackingProvider` context:
+
+- Does **not** silently substitute mock data when the native module is missing.
+- iOS and other platforms → `UNSUPPORTED_PLATFORM` (no Screen Time integration).
 
 ## Native boundary
 
-`NativeUsageTrackingModule` / `NativeUsageEvent` are **transport types**. Planned Kotlin code will wrap Android APIs and emit normalized strings before TypeScript maps to domain enums.
-
-Domain events from Android use `TrackingSource.ANDROID_USAGE_STATS` (set in the TypeScript provider).
-
-## Explicitly deferred (Day 2+)
-
-- Kotlin **`UsageStatsManager`** implementation
-- Real permission UI wiring from onboarding
-- **AccessibilityService** (not planned for Day 1)
-- **Session Builder** (UsageEvent[] → UsageSession[])
-
-## Intended future pipeline
+### Current (after D2.4)
 
 ```
-UsageTrackingProvider → UsageEvent[] → Session Builder → classify → SQLite → application queries → UI
+UsagePermissionScreen
+        ↓
+UsageTrackingProvider (context)
+        ↓
+AndroidUsageTrackingProvider
+        ↓
+LostHoursUsageTracking (RN)
+        ↓
+UsageAccessController + UsageStatsEventCollector
 ```
 
-Only the provider boundary and domain types exist end-to-end today; session building and native Android code do not.
+- Permission UI reads real provider state; **Open Settings** uses native navigator.
+- Re-check on navigation focus and when app becomes **active** after Settings.
+- **Main** navigation guarded — requires **GRANTED** (re-checked on Continue).
+- **D2.8:** Today triggers foreground sync via `SyncUsageSessions` on focus/refresh; see [today-dashboard.md](./today-dashboard.md).
+
+### Session building (after D2.5)
+
+```
+getUsageEvents → UsageEvent[] → DefaultUsageSessionBuilder → UsageSession[]
+```
+
+See [session-builder.md](./session-builder.md) and [persistence.md](./persistence.md).
+
+**D2.6:** `SyncUsageSessions` persists via SQLite (foreground/on-demand only — no background scheduler).
+
+**D2.7:** `GetUsageSessionsForRange` + overlap reads + analytics clipping.
+
+**D2.8:** Live Today dashboard (sync → SQLite → query → clip → analytics). No production demo data.
+
+**D2.9:** Onboarding completion persisted via AsyncStorage; Usage Access rechecked on every cold start. See [onboarding-bootstrap.md](./onboarding-bootstrap.md).
 
 More detail: [apps/mobile/src/infrastructure/tracking/README.md](../../apps/mobile/src/infrastructure/tracking/README.md)

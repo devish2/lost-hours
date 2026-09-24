@@ -2,14 +2,16 @@
 
 ## Root stack
 
-Development initial route: **Welcome** (onboarding completion is not persisted yet).
+**D2.9:** `AppBootstrapGate` picks the initial root route after reading onboarding persistence and live Usage Access. See [onboarding-bootstrap.md](../../../../docs/architecture/onboarding-bootstrap.md).
 
 ```
-Welcome → UsagePermission → Main
+First launch: Welcome → UsagePermission → Main
+Returning + granted: Main
+Returning + revoked: UsagePermission (not Welcome)
 ```
 
 - **Welcome** — product intro; navigates to usage permission setup.
-- **UsagePermission** — presentation-only; does not call Android tracking APIs.
+- **UsagePermission** — checks Usage Access via `UsageTrackingProvider`; opens Android Settings; Main requires **GRANTED**.
 - **Main** — bottom tab shell.
 
 ## Main tabs

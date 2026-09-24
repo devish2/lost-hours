@@ -47,7 +47,8 @@ Implementations: `sqlite/repositories/` — `SQLite*Repository` with UPSERT save
 
 | Query | Semantics |
 |-------|-----------|
-| `UsageSessionRepository.findBetween(from, to)` | `startTime >= from` **and** `startTime < to` (**[from, to)**) |
+| `UsageSessionRepository.findBetween(from, to)` | `startTime >= from` **and** `startTime < to` (**[from, to)** on start) |
+| `UsageSessionRepository.findOverlapping(from, to)` | `startTime < to` **and** `endTime > from` (interval overlap) |
 | `DailyUsageSummaryRepository.findBetweenDates(from, to)` | `fromDate <= date <= toDate` (lexicographic on `YYYY-MM-DD`) |
 
 Callers supply date-bounded sessions/summaries; repositories do not compute local midnights.
@@ -59,7 +60,21 @@ Callers supply date-bounded sessions/summaries; repositories do not compute loca
 ## Transactions
 
 - `saveMany` on session and rule repositories uses a single SQLite transaction.
+- `saveManyWithOpeningReconciliation` (D2.6) runs delete-derived-variant + upsert per session inside one transaction.
 - Each pending migration runs inside a transaction; failures abort without advancing `user_version`.
+
+## Sync pipeline (D2.6)
+
+- `createInitializedStorage()` — explicit DB + repository bootstrap (not App auto-start).
+- `createSyncUsageSessionsPipeline({ usageEventsPort, usageSessionRepository })` → `SyncUsageSessions`.
+- Idempotent by session id; reconciles truncated→extended variants by opening identity (`trackingSource`, `packageName`, `startTime`).
+- No automatic background sync in D2.6.
+
+## Read queries (D2.7)
+
+- `createUsageSessionQueries({ usageSessionRepository })` → `GetUsageSessionsForRange` (overlap reads).
+- `clipUsageSessionsToWindow` (domain) — analytics-only; not persisted.
+- Reads do not trigger sync by themselves. **D2.8:** `getAppStorage()` memoizes `createInitializedStorage()` once per runtime; Today foreground refresh runs sync then overlap read.
 
 ## Testing
 

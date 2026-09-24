@@ -51,6 +51,11 @@ export function usageSessionRowToDomain(row: UsageSessionRow): UsageSession {
   };
 }
 
+export const USAGE_SESSION_DELETE_DERIVED_VARIANTS_SQL = `
+DELETE FROM usage_sessions
+WHERE tracking_source = ? AND package_name = ? AND start_time = ? AND id != ?
+`;
+
 export const USAGE_SESSION_UPSERT_SQL = `
 INSERT INTO usage_sessions (
   id,

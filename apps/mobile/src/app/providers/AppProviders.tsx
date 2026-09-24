@@ -4,6 +4,10 @@ import { StatusBar, StyleSheet, useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { OnboardingStateProvider } from './OnboardingStateContext';
+import { TodayLiveDataProvider } from './TodayLiveDataProvider';
+import { UsageTrackingProvider } from './UsageTrackingContext';
+
 type AppProvidersProps = {
   children: ReactNode;
 };
@@ -14,10 +18,18 @@ export function AppProviders({ children }: AppProvidersProps) {
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
-        <NavigationContainer>
-          <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-          {children}
-        </NavigationContainer>
+        <OnboardingStateProvider>
+          <UsageTrackingProvider>
+            <TodayLiveDataProvider>
+              <NavigationContainer>
+                <StatusBar
+                  barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+                />
+                {children}
+              </NavigationContainer>
+            </TodayLiveDataProvider>
+          </UsageTrackingProvider>
+        </OnboardingStateProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

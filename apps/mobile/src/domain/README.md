@@ -50,10 +50,19 @@ Resolution for a `ClassificationContext` against enabled rules:
 - `UNKNOWN` classification still counts as tracked time (`unknownMs`, `totalTrackedMs`) but not Lost Time.
 - Invalid-duration sessions are excluded; empty input yields zeros (including `longestSessionMs: 0`).
 
+## Session building (D2.5)
+
+`DefaultUsageSessionBuilder` converts factual `UsageEvent[]` into `UsageSession[]` for a processing window **[from, to)**.
+
+- Package-scoped foreground/background pairing; orphan backgrounds ignored; unmatched foregrounds close at window end.
+- No content or productivity inference — `ContentType.UNKNOWN`, `ActivityClassification.UNKNOWN`.
+- Platform via injectable `PlatformResolver` (`PackageNamePlatformResolver` for known Android packages).
+- Deterministic session ids; see [session-builder.md](../../../docs/architecture/session-builder.md).
+
 ## Persistence contracts
 
 Repository interfaces in `domain/repositories/` describe local storage using domain models only (no SQLite types).
 
-- **Usage sessions:** `findBetween(from, to)` uses **[from, to)** on `startTime` (ms). Date-boundary selection is an application concern.
+- **Usage sessions:** `findBetween(from, to)` uses **[from, to)** on `startTime` (ms). `findOverlapping(from, to)` uses interval overlap for analytics reads. Date-boundary clipping: `clipUsageSessionsToWindow` (analytics-only, D2.7).
 - **Daily summaries:** `findBetweenDates(fromDate, toDate)` uses **inclusive** `YYYY-MM-DD` bounds (lexicographic order).
 - Implementations live under `infrastructure/storage/sqlite/`; domain code must not import them.

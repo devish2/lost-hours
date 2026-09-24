@@ -45,6 +45,24 @@ jest.mock('react-native-screens', () => {
   };
 });
 
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  __esModule: true,
+  default: {
+    getItem: jest.fn(async () => null),
+    setItem: jest.fn(async () => {}),
+    removeItem: jest.fn(async () => {}),
+  },
+}));
+
+jest.mock('@op-engineering/op-sqlite', () => ({
+  open: jest.fn(() => ({
+    execute: jest.fn(async () => ({ rows: [], rowsAffected: 0 })),
+    executeSync: jest.fn(() => ({ rows: [], rowsAffected: 0 })),
+    transaction: jest.fn(async fn => fn({ execute: jest.fn(async () => ({ rows: [], rowsAffected: 0 })) })),
+    close: jest.fn(),
+  })),
+}));
+
 jest.mock('react-native-gesture-handler', () => {
   const { View } = require('react-native');
 

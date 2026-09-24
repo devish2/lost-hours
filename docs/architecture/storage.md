@@ -50,6 +50,11 @@ Lower-level file paths, indexes, and mapper behavior:
 
 [apps/mobile/src/infrastructure/storage/README.md](../../apps/mobile/src/infrastructure/storage/README.md)
 
-## Day 1 status
+## Day 2 persistence (D2.6)
 
-Schema, repositories, and mappers are implemented and tested in Jest (with test doubles). **UI and App bootstrap do not read/write SQLite yet.**
+- **`SyncUsageSessions`** orchestrates collect → build → `saveManyWithOpeningReconciliation`.
+- **`createInitializedStorage()`** opens DB + repositories (explicit call; not App auto-start).
+- Idempotent upsert by session id + opening-identity reconciliation for truncated→extended variants.
+- See [persistence.md](./persistence.md).
+
+**UI and Today still do not read SQLite.** No automatic background sync.

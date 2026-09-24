@@ -1,6 +1,6 @@
 import type { NativeUsageEvent } from './NativeUsageEvent';
 
-/** TypeScript contract for the future Android native usage-tracking module. */
+/** TypeScript contract for the Android native usage-tracking module (RN name: LostHoursUsageTracking). */
 export interface NativeUsageTrackingModule {
   getPermissionStatus(): Promise<string>;
 

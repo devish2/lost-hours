@@ -1,5 +1,10 @@
 import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import {
+  ScrollView,
+  StyleSheet,
+  View,
+  type RefreshControlProps,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useThemedScreenColors } from '../styles/useThemedScreenColors';
@@ -8,12 +13,14 @@ type ScreenScaffoldProps = {
   children: ReactNode;
   scroll?: boolean;
   centered?: boolean;
+  refreshControl?: React.ReactElement<RefreshControlProps>;
 };
 
 export function ScreenScaffold({
   children,
   scroll = false,
   centered = false,
+  refreshControl,
 }: ScreenScaffoldProps) {
   const colors = useThemedScreenColors();
 
@@ -35,7 +42,8 @@ export function ScreenScaffold({
       {scroll ? (
         <ScrollView
           contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled">
+          keyboardShouldPersistTaps="handled"
+          refreshControl={refreshControl}>
           {content}
         </ScrollView>
       ) : (
