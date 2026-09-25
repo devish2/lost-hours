@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 
+import { AndroidAppMetadataProvider } from './android/AndroidAppMetadataProvider';
 import { AndroidUsageTrackingProvider } from './android/AndroidUsageTrackingProvider';
 import { getNativeUsageTrackingModule } from './android/native/getNativeUsageTrackingModule';
 import {
@@ -42,5 +43,6 @@ export function createUsageTrackingComposition(
   return {
     kind: UsageTrackingCompositionKind.ANDROID_NATIVE,
     provider: new AndroidUsageTrackingProvider(nativeModule),
+    appMetadataPort: new AndroidAppMetadataProvider(nativeModule),
   };
 }

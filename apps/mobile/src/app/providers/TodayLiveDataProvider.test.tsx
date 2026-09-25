@@ -8,6 +8,7 @@ import ReactTestRenderer, { act } from 'react-test-renderer';
 import { TodayLiveDashboardService } from '../../application/today/TodayLiveDashboardService';
 import { UsageTrackingProvider } from './UsageTrackingContext';
 import { UsageTrackingCompositionKind } from '../../infrastructure/tracking/UsageTrackingComposition';
+import { noOpAppMetadataPort } from '../../infrastructure/tracking/testSupport/noOpAppMetadataPort';
 import { MockUsageTrackingProvider } from '../../infrastructure/tracking/mock/MockUsageTrackingProvider';
 import { TodayLiveDataProvider, useTodayLiveData } from './TodayLiveDataProvider';
 
@@ -41,6 +42,7 @@ describe('TodayLiveDataProvider refresh single-flight', () => {
                 unknownMs: 0,
                 lostSessionCount: 0,
                 lostByPlatform: [],
+                apps: [],
               },
             });
         }),
@@ -57,6 +59,7 @@ describe('TodayLiveDataProvider refresh single-flight', () => {
           composition={{
             kind: UsageTrackingCompositionKind.ANDROID_NATIVE,
             provider: new MockUsageTrackingProvider(),
+            appMetadataPort: noOpAppMetadataPort,
           }}>
           <TodayLiveDataProvider service={service}>
             <Probe />

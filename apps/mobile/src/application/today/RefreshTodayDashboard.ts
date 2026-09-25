@@ -1,6 +1,10 @@
+import { applyEffectiveClassificationToUsageSessions } from '../classification/applyEffectiveClassificationToUsageSessions';
 import { GetTodayDashboard } from '../queries/GetTodayDashboard';
 import { GetUsageSessionsForRange } from '../queries/GetUsageSessionsForRange';
 import type { TodayDashboardModel } from '../models/TodayDashboardModel';
+import type { ActivityClassifier } from '../../domain/classification/ActivityClassifier';
+import { ruleBasedActivityClassifier } from '../../domain/classification/RuleBasedActivityClassifier';
+import type { ClassificationRuleRepository } from '../../domain/repositories/ClassificationRuleRepository';
 import { clipUsageSessionsToWindow } from '../../domain/session/clipUsageSessionsToWindow';
 import type { Clock } from '../../shared/time/Clock';
 import {
@@ -27,6 +31,8 @@ export type RefreshTodayDashboardResult =
 export type RefreshTodayDashboardDeps = {
   syncUsageSessions: SyncUsageSessions;
   getUsageSessionsForRange: GetUsageSessionsForRange;
+  classificationRuleRepository?: ClassificationRuleRepository;
+  activityClassifier?: ActivityClassifier;
   getTodayDashboard?: GetTodayDashboard;
   clock: Clock;
 };
@@ -43,16 +49,20 @@ function emptyDashboardForDate(date: string): TodayDashboardModel {
     unknownMs: 0,
     lostSessionCount: 0,
     lostByPlatform: [],
+    apps: [],
   };
 }
 
 /** Sync → SQLite read → clip → existing Today analytics (no demo fallback). */
 export class RefreshTodayDashboard {
   private readonly getTodayDashboard: GetTodayDashboard;
+  private readonly activityClassifier: ActivityClassifier;
 
   constructor(private readonly deps: RefreshTodayDashboardDeps) {
     this.getTodayDashboard =
       deps.getTodayDashboard ?? new GetTodayDashboard();
+    this.activityClassifier =
+      deps.activityClassifier ?? ruleBasedActivityClassifier;
   }
 
   async execute(): Promise<RefreshTodayDashboardResult> {
@@ -98,11 +108,37 @@ export class RefreshTodayDashboard {
       window.toTimestamp,
     );
 
+    let enabledRules;
+    try {
+      enabledRules = await this.loadEnabledClassificationRules();
+    } catch (error) {
+      throw new TodayDashboardRefreshError(
+        'QUERY_FAILED',
+        'Could not load classification rules',
+        error,
+      );
+    }
+
+    let analyticsSessions;
+    try {
+      analyticsSessions = applyEffectiveClassificationToUsageSessions(
+        clippedSessions,
+        enabledRules,
+        this.activityClassifier,
+      );
+    } catch (error) {
+      throw new TodayDashboardRefreshError(
+        'ANALYTICS_FAILED',
+        'Could not apply classification rules',
+        error,
+      );
+    }
+
     let dashboard;
     try {
       dashboard = this.getTodayDashboard.execute(
         window.date,
-        clippedSessions,
+        analyticsSessions,
       );
     } catch (error) {
       throw new TodayDashboardRefreshError(
@@ -117,5 +153,13 @@ export class RefreshTodayDashboard {
     }
 
     return { kind: 'success', dashboard };
+  }
+
+  private async loadEnabledClassificationRules() {
+    const repository = this.deps.classificationRuleRepository;
+    if (repository == null) {
+      return [];
+    }
+    return repository.findEnabled();
   }
 }

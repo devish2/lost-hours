@@ -1,6 +1,8 @@
+import { Platform } from '../../domain/platform/Platform';
 import { DefaultUsageSessionBuilder } from '../../domain/session/DefaultUsageSessionBuilder';
 import type { SessionBuilder } from '../../domain/session/SessionBuilder';
 import { createUsageEvent } from '../../domain/testSupport/createUsageEvent';
+import type { AppMetadataPort } from '../../domain/usage/AppMetadataPort';
 import type { UsageEventsPort } from '../../domain/usage/UsageEventsPort';
 import { UsageEventType } from '../../domain/usage/UsageEventType';
 import { InMemoryUsageSessionRepository } from '../../infrastructure/storage/testSupport/InMemoryUsageSessionRepository';
@@ -117,5 +119,77 @@ describe('SyncUsageSessions', () => {
     );
 
     await expect(sync.execute(0, 1000)).rejects.toThrow(/sqlite failure/);
+  });
+
+  it('persists displayName from app metadata without failing when metadata throws', async () => {
+    const events = [
+      createUsageEvent({
+        timestamp: 1000,
+        eventType: UsageEventType.FOREGROUND,
+        app: { packageName: 'com.linkedin.android' },
+      }),
+      createUsageEvent({
+        timestamp: 4000,
+        eventType: UsageEventType.BACKGROUND,
+        app: { packageName: 'com.linkedin.android' },
+      }),
+    ];
+    const port: UsageEventsPort = {
+      getUsageEvents: jest.fn(async () => events),
+    };
+    const repository = new InMemoryUsageSessionRepository();
+    const getAppMetadata = jest.fn(async () => [
+      { packageName: 'com.linkedin.android', displayName: 'LinkedIn' },
+    ]);
+    const metadataPort: AppMetadataPort = { getAppMetadata };
+    const sync = new SyncUsageSessions(
+      new CollectUsageSessions(port, new DefaultUsageSessionBuilder()),
+      repository,
+      metadataPort,
+    );
+
+    await sync.execute(0, 5000);
+
+    expect(getAppMetadata).toHaveBeenCalledWith(['com.linkedin.android']);
+    const stored = repository.allSessions();
+    expect(stored).toHaveLength(1);
+    expect(stored[0].app.displayName).toBe('LinkedIn');
+    expect(stored[0].app.packageName).toBe('com.linkedin.android');
+    expect(stored[0].platform).toBe(Platform.LINKEDIN);
+  });
+
+  it('still persists sessions when app metadata lookup fails', async () => {
+    const events = [
+      createUsageEvent({
+        timestamp: 1,
+        eventType: UsageEventType.FOREGROUND,
+        app: { packageName: 'com.whatsapp' },
+      }),
+      createUsageEvent({
+        timestamp: 2,
+        eventType: UsageEventType.BACKGROUND,
+        app: { packageName: 'com.whatsapp' },
+      }),
+    ];
+    const port: UsageEventsPort = {
+      getUsageEvents: jest.fn(async () => events),
+    };
+    const metadataPort: AppMetadataPort = {
+      getAppMetadata: jest.fn(async () => {
+        throw new Error('metadata unavailable');
+      }),
+    };
+    const repository = new InMemoryUsageSessionRepository();
+    const sync = new SyncUsageSessions(
+      new CollectUsageSessions(port, new DefaultUsageSessionBuilder()),
+      repository,
+      metadataPort,
+    );
+
+    await sync.execute(0, 1000);
+    const stored = repository.allSessions();
+    expect(stored).toHaveLength(1);
+    expect(stored[0].app.packageName).toBe('com.whatsapp');
+    expect(stored[0].app.displayName).toBeUndefined();
   });
 });

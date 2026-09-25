@@ -9,7 +9,9 @@ import {
   type ReactNode,
 } from 'react';
 
+import type { ExplicitActivityClassification } from '../../domain/classification/appUserClassificationRule';
 import { TodayLiveDashboardService } from '../../application/today/TodayLiveDashboardService';
+import { TodayClassificationMutationError } from '../../application/today/TodayAppClassificationActions';
 import { TodayDashboardRefreshError } from '../../application/today/TodayDashboardRefreshError';
 import type { TodayUiState } from '../../features/dashboard/todayUiState';
 import { mapRefreshResultToUiState } from '../../features/dashboard/todayUiState';
@@ -20,6 +22,17 @@ type TodayLiveDataContextValue = {
   isRefreshing: boolean;
   refreshToday: () => void;
   openUsageAccessSettings: () => void;
+  getExplicitAppClassification: (
+    packageName: string,
+  ) => Promise<ExplicitActivityClassification | null>;
+  setAppClassification: (
+    packageName: string,
+    classification: ExplicitActivityClassification,
+  ) => Promise<boolean>;
+  clearAppClassification: (packageName: string) => Promise<boolean>;
+  classifyingPackageName: string | null;
+  classificationMutationError: string | null;
+  clearClassificationMutationError: () => void;
 };
 
 const TodayLiveDataContext = createContext<TodayLiveDataContextValue | null>(
@@ -43,8 +56,16 @@ export function TodayLiveDataProvider({
 
   const [uiState, setUiState] = useState<TodayUiState>({ phase: 'loading' });
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [classifyingPackageName, setClassifyingPackageName] = useState<
+    string | null
+  >(null);
+  const [classificationMutationError, setClassificationMutationError] =
+    useState<string | null>(null);
   const refreshGenerationRef = useRef(0);
   const inFlightRef = useRef<Promise<void> | null>(null);
+  const classificationInFlightByPackageRef = useRef(
+    new Map<string, Promise<boolean>>(),
+  );
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -111,6 +132,86 @@ export function TodayLiveDataProvider({
     runRefresh().catch(() => {});
   }, [runRefresh]);
 
+  const applyRefreshResult = useCallback(
+    (result: Awaited<ReturnType<TodayLiveDashboardService['refreshToday']>>) => {
+      setUiState(mapRefreshResultToUiState(result));
+    },
+    [],
+  );
+
+  const getExplicitAppClassification = useCallback(
+    (packageName: string) => liveService.getExplicitAppClassification(packageName),
+    [liveService],
+  );
+
+  const runPackageClassificationMutation = useCallback(
+    async (
+      packageName: string,
+      mutate: () => Promise<
+        Awaited<ReturnType<TodayLiveDashboardService['refreshToday']>>
+      >,
+    ): Promise<boolean> => {
+      const inflight = classificationInFlightByPackageRef.current.get(packageName);
+      if (inflight != null) {
+        return inflight;
+      }
+
+      const task = (async (): Promise<boolean> => {
+        setClassificationMutationError(null);
+        setClassifyingPackageName(packageName);
+        try {
+          const result = await mutate();
+          if (!isMountedRef.current) {
+            return false;
+          }
+          applyRefreshResult(result);
+          return true;
+        } catch (error) {
+          if (!isMountedRef.current) {
+            return false;
+          }
+          const message =
+            error instanceof TodayClassificationMutationError
+              ? error.message
+              : error instanceof Error
+                ? error.message
+                : 'Could not update classification';
+          setClassificationMutationError(message);
+          return false;
+        } finally {
+          if (isMountedRef.current) {
+            setClassifyingPackageName(null);
+          }
+          classificationInFlightByPackageRef.current.delete(packageName);
+        }
+      })();
+
+      classificationInFlightByPackageRef.current.set(packageName, task);
+      return task;
+    },
+    [applyRefreshResult],
+  );
+
+  const setAppClassification = useCallback(
+    async (packageName: string, classification: ExplicitActivityClassification) =>
+      runPackageClassificationMutation(packageName, () =>
+        liveService.setClassification(packageName, classification),
+      ),
+    [liveService, runPackageClassificationMutation],
+  );
+
+  const clearAppClassification = useCallback(
+    async (packageName: string) =>
+      runPackageClassificationMutation(packageName, () =>
+        liveService.clearClassification(packageName),
+      ),
+    [liveService, runPackageClassificationMutation],
+  );
+
+  const clearClassificationMutationError = useCallback(() => {
+    setClassificationMutationError(null);
+  }, []);
+
   const openUsageAccessSettings = useCallback(() => {
     liveService.openUsageAccessSettings().catch(error => {
       if (!isMountedRef.current) {
@@ -130,8 +231,25 @@ export function TodayLiveDataProvider({
       isRefreshing,
       refreshToday,
       openUsageAccessSettings,
+      getExplicitAppClassification,
+      setAppClassification,
+      clearAppClassification,
+      classifyingPackageName,
+      classificationMutationError,
+      clearClassificationMutationError,
     }),
-    [uiState, isRefreshing, refreshToday, openUsageAccessSettings],
+    [
+      uiState,
+      isRefreshing,
+      refreshToday,
+      openUsageAccessSettings,
+      getExplicitAppClassification,
+      setAppClassification,
+      clearAppClassification,
+      classifyingPackageName,
+      classificationMutationError,
+      clearClassificationMutationError,
+    ],
   );
 
   return (

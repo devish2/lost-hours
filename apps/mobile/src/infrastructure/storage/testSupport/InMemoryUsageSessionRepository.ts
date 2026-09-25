@@ -35,7 +35,18 @@ export class InMemoryUsageSessionRepository implements UsageSessionRepository {
         this.sessions.delete(id);
       }
     }
-    this.sessions.set(session.id, { ...session, app: { ...session.app } });
+    const existing = this.sessions.get(session.id);
+    const displayName =
+      session.app.displayName?.trim() ||
+      existing?.app.displayName?.trim() ||
+      undefined;
+    this.sessions.set(session.id, {
+      ...session,
+      app: {
+        ...session.app,
+        ...(displayName != null ? { displayName } : {}),
+      },
+    });
   }
 
   async findById(id: string): Promise<UsageSession | null> {

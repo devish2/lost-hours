@@ -11,6 +11,7 @@ object UsageTrackingBridgeErrors {
   const val USAGE_STATS_QUERY_FAILED: String = "USAGE_STATS_QUERY_FAILED"
   const val USAGE_SETTINGS_UNAVAILABLE: String = "USAGE_SETTINGS_UNAVAILABLE"
   const val NATIVE_PERMISSION_CHECK_FAILED: String = "NATIVE_PERMISSION_CHECK_FAILED"
+  const val APP_METADATA_QUERY_FAILED: String = "APP_METADATA_QUERY_FAILED"
 
   fun rejectFromCollectionException(
     promise: Promise,

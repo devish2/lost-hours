@@ -15,6 +15,7 @@ import {
   UsageTrackingCompositionKind,
   type UsageTrackingComposition,
 } from '../../../infrastructure/tracking/UsageTrackingComposition';
+import { noOpAppMetadataPort } from '../../../infrastructure/tracking/testSupport/noOpAppMetadataPort';
 import { UsagePermissionScreen } from './UsagePermissionScreen';
 
 const mockDispatch = jest.fn();
@@ -54,6 +55,7 @@ function androidComposition(
   return {
     kind: UsageTrackingCompositionKind.ANDROID_NATIVE,
     provider,
+    appMetadataPort: noOpAppMetadataPort,
   };
 }
 

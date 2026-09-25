@@ -5,8 +5,10 @@ import type { LostTimeCalculator } from './LostTimeCalculator';
 import type { LostTimeSummary } from './LostTimeSummary';
 
 /**
- * MVP Lost Time: sum of `durationMs` for valid sessions classified as WASTE.
- * Ignores sessions with `durationMs <= 0` without throwing or mutating input.
+ * Lost Time V1: sum of `durationMs` for valid effective sessions classified WASTE.
+ * Input sessions must already be clipped to the analytics window; this type does
+ * not load rules, access SQLite, or dedupe overlapping wall-clock time.
+ * Ignores `durationMs <= 0` without throwing or mutating input.
  */
 export class DefaultLostTimeCalculator implements LostTimeCalculator {
   calculate(sessions: readonly UsageSession[]): LostTimeSummary {

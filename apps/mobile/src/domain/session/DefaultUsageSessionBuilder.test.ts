@@ -6,6 +6,7 @@ import type { PlatformResolver } from '../platform/PlatformResolver';
 import { createUsageEvent } from '../testSupport/createUsageEvent';
 import { TrackingSource } from '../usage/TrackingSource';
 import { UsageEventType } from '../usage/UsageEventType';
+import { PackageNamePlatformResolver } from '../platform/PackageNamePlatformResolver';
 import { DefaultUsageSessionBuilder } from './DefaultUsageSessionBuilder';
 import { deriveUsageSessionId } from './deriveUsageSessionId';
 
@@ -414,6 +415,85 @@ describe('DefaultUsageSessionBuilder', () => {
 
     expect(sessions).toHaveLength(1);
     expect(sessions[0]?.app.packageName).toBe('com.valid.app');
+  });
+
+  it('preserves packageName and resolves platform via default PackageNamePlatformResolver', () => {
+    const builderWithCatalog = new DefaultUsageSessionBuilder({
+      platformResolver: new PackageNamePlatformResolver(),
+    });
+
+    const linkedIn = builderWithCatalog.buildSessions(
+      [
+        createUsageEvent({
+          timestamp: 1_000,
+          eventType: UsageEventType.FOREGROUND,
+          app: { packageName: 'com.linkedin.android' },
+        }),
+        createUsageEvent({
+          timestamp: 5_000,
+          eventType: UsageEventType.BACKGROUND,
+          app: { packageName: 'com.linkedin.android' },
+        }),
+      ],
+      FROM,
+      TO,
+    );
+
+    expect(linkedIn).toHaveLength(1);
+    expect(linkedIn[0]?.app.packageName).toBe('com.linkedin.android');
+    expect(linkedIn[0]?.platform).toBe(Platform.LINKEDIN);
+    expect(linkedIn[0]?.classification).toBe(ActivityClassification.UNKNOWN);
+    expect(linkedIn[0]?.classificationSource).toBe(
+      ClassificationSource.UNKNOWN,
+    );
+
+    const snapchat = builderWithCatalog.buildSessions(
+      [
+        createUsageEvent({
+          timestamp: 2_000,
+          eventType: UsageEventType.FOREGROUND,
+          app: { packageName: 'com.snapchat.android' },
+        }),
+        createUsageEvent({
+          timestamp: 6_000,
+          eventType: UsageEventType.BACKGROUND,
+          app: { packageName: 'com.snapchat.android' },
+        }),
+      ],
+      FROM,
+      TO,
+    );
+
+    expect(snapchat[0]?.app.packageName).toBe('com.snapchat.android');
+    expect(snapchat[0]?.platform).toBe(Platform.OTHER);
+  });
+
+  it('maps Chrome foreground to OTHER without inferring in-app websites', () => {
+    const builderWithCatalog = new DefaultUsageSessionBuilder({
+      platformResolver: new PackageNamePlatformResolver(),
+    });
+
+    const chrome = builderWithCatalog.buildSessions(
+      [
+        createUsageEvent({
+          timestamp: 10_000,
+          eventType: UsageEventType.FOREGROUND,
+          app: { packageName: 'com.android.chrome' },
+        }),
+        createUsageEvent({
+          timestamp: 40_000,
+          eventType: UsageEventType.BACKGROUND,
+          app: { packageName: 'com.android.chrome' },
+        }),
+      ],
+      FROM,
+      TO,
+    );
+
+    expect(chrome).toHaveLength(1);
+    expect(chrome[0]?.app.packageName).toBe('com.android.chrome');
+    expect(chrome[0]?.platform).toBe(Platform.OTHER);
+    expect(chrome[0]?.classification).toBe(ActivityClassification.UNKNOWN);
   });
 
   it('uses injected platform resolver', () => {

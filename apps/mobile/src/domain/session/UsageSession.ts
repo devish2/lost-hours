@@ -5,7 +5,13 @@ import { Platform } from '../platform/Platform';
 import type { AppIdentity } from '../usage/AppIdentity';
 import { TrackingSource } from '../usage/TrackingSource';
 
-/** Normalized user activity over a time range (epoch milliseconds). */
+/**
+ * Normalized user activity over a time range (epoch milliseconds).
+ *
+ * Persisted rows are tracking facts. `classification` / `classificationSource` on
+ * stored sessions reflect sync/build defaults (usually UNKNOWN), not the user's
+ * current rule set — see effective classification at Today read time (D3.6–D3.7).
+ */
 export interface UsageSession {
   id: string;
   app: AppIdentity;

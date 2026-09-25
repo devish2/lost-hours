@@ -12,6 +12,7 @@ function createNativeModule(
     getPermissionStatus: async () => 'GRANTED',
     openUsageAccessSettings: async () => {},
     getUsageEvents: async () => [],
+    getAppMetadata: async () => [],
     ...overrides,
   };
 }

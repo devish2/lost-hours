@@ -1,6 +1,7 @@
 import { UsageTrackingPermissionStatus } from './UsageTrackingPermissionStatus';
 import { UsageTrackingCompositionKind } from './UsageTrackingComposition';
 import { createUsageTrackingComposition } from './createUsageTrackingComposition';
+import { AndroidAppMetadataProvider } from './android/AndroidAppMetadataProvider';
 import { AndroidUsageTrackingProvider } from './android/AndroidUsageTrackingProvider';
 import type { NativeUsageTrackingModule } from './android/native/NativeUsageTrackingModule';
 
@@ -11,6 +12,7 @@ function createNativeModuleStub(
     getPermissionStatus: async () => 'GRANTED',
     openUsageAccessSettings: async () => {},
     getUsageEvents: async () => [],
+    getAppMetadata: async () => [],
     ...overrides,
   };
 }
@@ -25,6 +27,12 @@ describe('createUsageTrackingComposition', () => {
 
     expect(composition.kind).toBe(UsageTrackingCompositionKind.ANDROID_NATIVE);
     expect(composition.provider).toBeInstanceOf(AndroidUsageTrackingProvider);
+    if (composition.kind !== UsageTrackingCompositionKind.ANDROID_NATIVE) {
+      throw new Error('expected android native composition');
+    }
+    expect(composition.appMetadataPort).toBeInstanceOf(
+      AndroidAppMetadataProvider,
+    );
   });
 
   it('marks Android native module unavailable without mock fallback', () => {

@@ -1,4 +1,8 @@
+import { createAppUserClassification } from '../../infrastructure/storage/createAppUserClassification';
+import type { ExplicitActivityClassification } from '../../domain/classification/appUserClassificationRule';
 import { GetUsageSessionsForRange } from '../queries/GetUsageSessionsForRange';
+import type { TodayAppClassificationActions } from './TodayAppClassificationActions';
+import { runTodayAppClassificationMutation } from './runTodayAppClassificationMutation';
 import { UsageTrackingCompositionKind } from '../../infrastructure/tracking/UsageTrackingComposition';
 import type { UsageTrackingComposition } from '../../infrastructure/tracking/UsageTrackingComposition';
 import { UsageTrackingPermissionStatus } from '../../infrastructure/tracking/UsageTrackingPermissionStatus';
@@ -19,7 +23,7 @@ export type TodayLiveDashboardServiceDeps = {
   getStorage?: typeof getAppStorage;
 };
 
-export class TodayLiveDashboardService {
+export class TodayLiveDashboardService implements TodayAppClassificationActions {
   private readonly clock: Clock;
   private readonly getStorage: typeof getAppStorage;
 
@@ -42,9 +46,16 @@ export class TodayLiveDashboardService {
       );
     }
 
+    const composition = this.deps.composition;
+    const appMetadataPort =
+      composition.kind === UsageTrackingCompositionKind.ANDROID_NATIVE
+        ? composition.appMetadataPort
+        : null;
+
     const syncUsageSessions = createSyncUsageSessionsPipeline({
       usageEventsPort: eventsPort,
       usageSessionRepository: storage.repositories.usageSessions,
+      appMetadataPort,
     });
     const getUsageSessionsForRange = new GetUsageSessionsForRange(
       storage.repositories.usageSessions,
@@ -54,6 +65,7 @@ export class TodayLiveDashboardService {
       clock: this.clock,
       syncUsageSessions,
       getUsageSessionsForRange,
+      classificationRuleRepository: storage.repositories.classificationRules,
     });
 
     try {
@@ -68,6 +80,35 @@ export class TodayLiveDashboardService {
     }
   }
 
+  async getExplicitAppClassification(
+    packageName: string,
+  ): Promise<ExplicitActivityClassification | null> {
+    const appClassification = await this.resolveAppUserClassification();
+    return appClassification.getExplicitAppClassification(packageName);
+  }
+
+  async setClassification(
+    packageName: string,
+    classification: ExplicitActivityClassification,
+  ): Promise<RefreshTodayDashboardResult> {
+    const appClassification = await this.resolveAppUserClassification();
+    return runTodayAppClassificationMutation({
+      persist: () =>
+        appClassification.setClassification(packageName, classification),
+      refreshToday: () => this.refreshToday(),
+    });
+  }
+
+  async clearClassification(
+    packageName: string,
+  ): Promise<RefreshTodayDashboardResult> {
+    const appClassification = await this.resolveAppUserClassification();
+    return runTodayAppClassificationMutation({
+      persist: () => appClassification.clearClassification(packageName),
+      refreshToday: () => this.refreshToday(),
+    });
+  }
+
   async openUsageAccessSettings(): Promise<void> {
     const { composition } = this.deps;
     if (composition.kind !== UsageTrackingCompositionKind.ANDROID_NATIVE) {
@@ -77,6 +118,20 @@ export class TodayLiveDashboardService {
       );
     }
     await composition.provider.openPermissionSettings();
+  }
+
+  private async resolveAppUserClassification() {
+    let storage;
+    try {
+      storage = await this.getStorage();
+    } catch (error) {
+      throw new TodayDashboardRefreshError(
+        'QUERY_FAILED',
+        'Local storage is unavailable',
+        error,
+      );
+    }
+    return createAppUserClassification(storage.repositories.classificationRules);
   }
 
   private async resolveEventsPort(): Promise<UsageEventsPort> {

@@ -10,7 +10,11 @@ import { TodayLiveDataProvider } from '../../../app/providers/TodayLiveDataProvi
 import { UsageTrackingProvider } from '../../../app/providers/UsageTrackingContext';
 import { TodayLiveDashboardService } from '../../../application/today/TodayLiveDashboardService';
 import { UsageTrackingCompositionKind } from '../../../infrastructure/tracking/UsageTrackingComposition';
+import { noOpAppMetadataPort } from '../../../infrastructure/tracking/testSupport/noOpAppMetadataPort';
 import { MockUsageTrackingProvider } from '../../../infrastructure/tracking/mock/MockUsageTrackingProvider';
+import { ActivityClassification } from '../../../domain/classification/ActivityClassification';
+import { ClassificationSource } from '../../../domain/classification/ClassificationSource';
+import { Platform } from '../../../domain/platform/Platform';
 import { TodayScreen } from './TodayScreen';
 
 jest.mock('@react-navigation/native', () => ({
@@ -31,6 +35,7 @@ function renderTodayScreen(service: TodayLiveDashboardService) {
         composition={{
           kind: UsageTrackingCompositionKind.ANDROID_NATIVE,
           provider: new MockUsageTrackingProvider(),
+          appMetadataPort: noOpAppMetadataPort,
         }}>
         <TodayLiveDataProvider service={service}>
           <TodayScreen />
@@ -67,6 +72,19 @@ describe('TodayScreen', () => {
           unknownMs: 3_600_000,
           lostSessionCount: 0,
           lostByPlatform: [],
+          apps: [
+            {
+              packageName: 'com.snapchat.android',
+              displayName: 'Snapchat',
+              platform: Platform.OTHER,
+              classification: ActivityClassification.WASTE,
+              classificationSource: ClassificationSource.USER_RULE,
+              hasMixedClassification: false,
+              hasMixedClassificationSource: false,
+              trackedDurationMs: 3_600_000,
+              lostDurationMs: 3_600_000,
+            },
+          ],
         },
       })),
       openUsageAccessSettings: jest.fn(async () => {}),
@@ -80,16 +98,26 @@ describe('TodayScreen', () => {
       await Promise.resolve();
     });
 
+    const flattenText = (children: unknown): string => {
+      if (typeof children === 'string') {
+        return children;
+      }
+      if (Array.isArray(children)) {
+        return children.map(flattenText).join('');
+      }
+      return '';
+    };
     const content = tree.root
       .findAllByType(Text)
-      .map(node =>
-        typeof node.props.children === 'string' ? node.props.children : '',
-      )
+      .map(node => flattenText(node.props.children))
       .join(' ');
     expect(content).not.toContain('Preview data');
     expect(content).toContain('Total Tracked');
     expect(content).toContain('Total Tracked 1h');
     expect(content).not.toContain('2h 41m');
+    expect(content).toContain('Apps');
+    expect(content).toContain('Snapchat');
+    expect(content).toContain('Waste');
   });
 
   it('shows permission-required state', async () => {
@@ -110,11 +138,18 @@ describe('TodayScreen', () => {
       await Promise.resolve();
     });
 
+    const flattenText = (children: unknown): string => {
+      if (typeof children === 'string') {
+        return children;
+      }
+      if (Array.isArray(children)) {
+        return children.map(flattenText).join('');
+      }
+      return '';
+    };
     const content = tree.root
       .findAllByType(Text)
-      .map(node =>
-        typeof node.props.children === 'string' ? node.props.children : '',
-      )
+      .map(node => flattenText(node.props.children))
       .join(' ');
     expect(content).toContain('Usage Access permission is required');
   });

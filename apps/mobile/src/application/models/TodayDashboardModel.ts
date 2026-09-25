@@ -1,4 +1,5 @@
 import type { Platform } from '../../domain/platform/Platform';
+import type { TodayAppBreakdownItem } from './TodayAppBreakdownItem';
 
 export interface PlatformLostTimeEntry {
   platform: Platform;
@@ -18,4 +19,6 @@ export interface TodayDashboardModel {
   lostSessionCount: number;
   /** Platforms with lost time > 0, sorted descending by lostMs. */
   lostByPlatform: readonly PlatformLostTimeEntry[];
+  /** Per-app usage for Today, sorted by tracked duration descending. */
+  apps: readonly TodayAppBreakdownItem[];
 }

@@ -4,6 +4,7 @@ import {
   UsageTrackingCompositionKind,
   type UsageTrackingComposition,
 } from '../../infrastructure/tracking/UsageTrackingComposition';
+import { noOpAppMetadataPort } from '../../infrastructure/tracking/testSupport/noOpAppMetadataPort';
 import { TodayLiveDashboardService } from './TodayLiveDashboardService';
 
 describe('TodayLiveDashboardService error mapping', () => {
@@ -13,6 +14,7 @@ describe('TodayLiveDashboardService error mapping', () => {
       provider: new MockUsageTrackingProvider({
         permissionStatus: UsageTrackingPermissionStatus.GRANTED,
       }),
+      appMetadataPort: noOpAppMetadataPort,
     };
 
     const service = new TodayLiveDashboardService({
@@ -34,6 +36,7 @@ describe('TodayLiveDashboardService error mapping', () => {
       provider: new MockUsageTrackingProvider({
         permissionStatus: UsageTrackingPermissionStatus.DENIED,
       }),
+      appMetadataPort: noOpAppMetadataPort,
     };
 
     const service = new TodayLiveDashboardService({ composition, getStorage });

@@ -14,6 +14,7 @@ import {
   UsageTrackingCompositionKind,
   type UsageTrackingComposition,
 } from '../../infrastructure/tracking/UsageTrackingComposition';
+import { noOpAppMetadataPort } from '../../infrastructure/tracking/testSupport/noOpAppMetadataPort';
 import { OnboardingStateProvider } from '../providers/OnboardingStateContext';
 import { UsageTrackingProvider } from '../providers/UsageTrackingContext';
 import { AppBootstrapGate } from './AppBootstrapGate';
@@ -69,6 +70,7 @@ describe('AppBootstrapGate', () => {
         provider: new MockUsageTrackingProvider({
           permissionStatus: UsageTrackingPermissionStatus.GRANTED,
         }),
+        appMetadataPort: noOpAppMetadataPort,
       },
       new InMemoryOnboardingStateRepository(),
     );

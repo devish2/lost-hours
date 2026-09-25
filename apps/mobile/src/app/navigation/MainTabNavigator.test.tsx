@@ -11,6 +11,7 @@ import { TodayLiveDataProvider } from '../providers/TodayLiveDataProvider';
 import { UsageTrackingProvider } from '../providers/UsageTrackingContext';
 import { TodayLiveDashboardService } from '../../application/today/TodayLiveDashboardService';
 import { UsageTrackingCompositionKind } from '../../infrastructure/tracking/UsageTrackingComposition';
+import { noOpAppMetadataPort } from '../../infrastructure/tracking/testSupport/noOpAppMetadataPort';
 import { MockUsageTrackingProvider } from '../../infrastructure/tracking/mock/MockUsageTrackingProvider';
 import { MainTabNavigator } from './MainTabNavigator';
 import { MainTabRoutes } from './routeNames';
@@ -55,6 +56,7 @@ describe('MainTabNavigator', () => {
           unknownMs: 0,
           lostSessionCount: 0,
           lostByPlatform: [],
+          apps: [],
         },
       })),
       openUsageAccessSettings: jest.fn(async () => {}),
@@ -67,6 +69,7 @@ describe('MainTabNavigator', () => {
           composition={{
             kind: UsageTrackingCompositionKind.ANDROID_NATIVE,
             provider: new MockUsageTrackingProvider(),
+            appMetadataPort: noOpAppMetadataPort,
           }}>
           <TodayLiveDataProvider service={service}>
             <NavigationContainer>

@@ -25,13 +25,23 @@ Status strings: `GRANTED`, `DENIED`, `UNKNOWN`.
 |------|--------|
 | **Registered module name** | `LostHoursUsageTracking` |
 | **Package** | `LostHoursUsageTrackingPackage` (added in `MainApplication`) |
-| **Methods** | `getPermissionStatus`, `openUsageAccessSettings`, `getUsageEvents` |
+| **Methods** | `getPermissionStatus`, `openUsageAccessSettings`, `getUsageEvents`, `getAppMetadata` |
 
 Bridge delegates to D2.1/D2.2. Event payloads: `{ packageName, timestamp, eventType }` with `timestamp` as JS `number` (double).
 
-**Stable error codes:** `USAGE_PERMISSION_DENIED`, `USAGE_PERMISSION_UNKNOWN`, `USAGE_STATS_UNAVAILABLE`, `INVALID_TIME_RANGE`, `USAGE_STATS_QUERY_FAILED`, `USAGE_SETTINGS_UNAVAILABLE`.
+**Stable error codes:** `USAGE_PERMISSION_DENIED`, `USAGE_PERMISSION_UNKNOWN`, `USAGE_STATS_UNAVAILABLE`, `INVALID_TIME_RANGE`, `USAGE_STATS_QUERY_FAILED`, `USAGE_SETTINGS_UNAVAILABLE`, `APP_METADATA_QUERY_FAILED`.
 
-**Not wired yet:** `AndroidUsageTrackingProvider` / UI (D2.4). Dashboard remains demo data.
+### App metadata (D3.3) — `appmetadata/`
+
+| Component | Role |
+|-----------|------|
+| `AppMetadataResolver` | Batch `PackageManager` labels for requested package names only |
+| `AppMetadataRequestParser` | Dedupes/trims bridge input |
+| `getAppMetadata` | Returns `{ packageName, displayName? }[]`; per-package failure omits label, not whole batch |
+
+Labels use `PackageManager.getApplicationLabel` for package names supplied from UsageStats only.
+
+**Package visibility (API 30+):** `AndroidManifest.xml` declares a `<queries>` MAIN/LAUNCHER intent so third-party launcher apps (Snapchat, Chrome, WhatsApp, etc.) can resolve labels without `QUERY_ALL_PACKAGES`.
 
 No AccessibilityService.
 

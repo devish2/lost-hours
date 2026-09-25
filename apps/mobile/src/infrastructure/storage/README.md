@@ -35,6 +35,8 @@ Indexes: `start_time`, `platform`, `classification`, `package_name`.
 
 User/system classification policy rows (`enabled` stored as 0/1).
 
+**D3.5:** App-level user classifications via `getAppUserClassification()` → `AppUserClassification` → `classificationRules` repository (stable `user-app:<packageName>` upsert; clear deletes row). Shares `getAppStorage()` with session sync — no second DB connection.
+
 ### `daily_usage_summaries`
 
 One row per local calendar date (`YYYY-MM-DD` string, no timezone conversion in persistence).
@@ -66,7 +68,7 @@ Callers supply date-bounded sessions/summaries; repositories do not compute loca
 ## Sync pipeline (D2.6)
 
 - `createInitializedStorage()` — explicit DB + repository bootstrap (not App auto-start).
-- `createSyncUsageSessionsPipeline({ usageEventsPort, usageSessionRepository })` → `SyncUsageSessions`.
+- `createSyncUsageSessionsPipeline({ usageEventsPort, usageSessionRepository, appMetadataPort? })` → `SyncUsageSessions` (optional label enrichment before persist).
 - Idempotent by session id; reconciles truncated→extended variants by opening identity (`trackingSource`, `packageName`, `startTime`).
 - No automatic background sync in D2.6.
 

@@ -4,6 +4,7 @@ import type { DailyUsageAggregator } from '../../domain/usage/DailyUsageAggregat
 import type { LostTimeCalculator } from '../../domain/lost-time/LostTimeCalculator';
 import type { UsageSession } from '../../domain/session/UsageSession';
 import { Platform } from '../../domain/platform/Platform';
+import { aggregateTodayUsageByApp } from '../today/aggregateTodayUsageByApp';
 import type {
   PlatformLostTimeEntry,
   TodayDashboardModel,
@@ -57,6 +58,7 @@ export class GetTodayDashboard {
       unknownMs: daily.unknownMs,
       lostSessionCount: lost.sessionCount,
       lostByPlatform: sortLostByPlatform(lost.byPlatform),
+      apps: aggregateTodayUsageByApp(sessions),
     };
   }
 }

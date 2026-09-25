@@ -1,4 +1,6 @@
+import { enrichUsageSessionsWithAppMetadata } from '../session/enrichUsageSessionsWithAppMetadata';
 import type { UsageSessionRepository } from '../../domain/repositories/UsageSessionRepository';
+import type { AppMetadataPort } from '../../domain/usage/AppMetadataPort';
 import { CollectUsageSessions } from './CollectUsageSessions';
 
 export type SyncUsageSessionsResult = {
@@ -13,6 +15,7 @@ export class SyncUsageSessions {
   constructor(
     private readonly collectUsageSessions: CollectUsageSessions,
     private readonly usageSessionRepository: UsageSessionRepository,
+    private readonly appMetadataPort: AppMetadataPort | null = null,
   ) {}
 
   async execute(
@@ -23,8 +26,12 @@ export class SyncUsageSessions {
       fromTimestamp,
       toTimestamp,
     );
-    await this.usageSessionRepository.saveManyWithOpeningReconciliation(
+    const sessionsToPersist = await enrichUsageSessionsWithAppMetadata(
       sessions,
+      this.appMetadataPort,
+    );
+    await this.usageSessionRepository.saveManyWithOpeningReconciliation(
+      sessionsToPersist,
     );
     return {
       fromTimestamp,

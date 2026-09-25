@@ -1,3 +1,4 @@
+import type { AppMetadataPort } from '../../domain/usage/AppMetadataPort';
 import type { UsageTrackingProvider } from './UsageTrackingProvider';
 
 /** How usage tracking is wired at app composition time (not raw permission state). */
@@ -14,6 +15,7 @@ export type UsageTrackingComposition =
   | {
       kind: UsageTrackingCompositionKind.ANDROID_NATIVE;
       provider: UsageTrackingProvider;
+      appMetadataPort: AppMetadataPort;
     }
   | {
       kind: UsageTrackingCompositionKind.ANDROID_NATIVE_UNAVAILABLE;

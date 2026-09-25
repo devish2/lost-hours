@@ -1,10 +1,13 @@
 package com.aevora.losthours.tracking.bridge
 
+import com.aevora.losthours.tracking.appmetadata.AppMetadataRequestParser
+import com.aevora.losthours.tracking.appmetadata.AppMetadataResolver
 import com.aevora.losthours.tracking.usageaccess.UsageAccessController
 import com.aevora.losthours.tracking.usageaccess.UsageAccessPermissionStatus
 import com.aevora.losthours.tracking.usagestats.UsageStatsCollectionException
 import com.aevora.losthours.tracking.usagestats.UsageStatsEventCollector
 import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
@@ -21,6 +24,7 @@ class LostHoursUsageTrackingModule(reactContext: ReactApplicationContext) :
     reactContext,
     usageAccessController,
   )
+  private val appMetadataResolver = AppMetadataResolver.fromContext(reactContext)
   private val backgroundExecutor: ExecutorService = Executors.newSingleThreadExecutor()
 
   override fun getName(): String = NAME
@@ -58,6 +62,23 @@ class LostHoursUsageTrackingModule(reactContext: ReactApplicationContext) :
         promise.reject(
           UsageTrackingBridgeErrors.USAGE_SETTINGS_UNAVAILABLE,
           "Usage Access settings could not be opened",
+          error,
+        )
+      }
+    }
+  }
+
+  @ReactMethod
+  fun getAppMetadata(packageNames: ReadableArray, promise: Promise) {
+    backgroundExecutor.execute {
+      try {
+        val parsed = AppMetadataRequestParser.parsePackageNames(packageNames)
+        val resolved = appMetadataResolver.resolveMetadata(parsed)
+        promise.resolve(AppMetadataBridgeMapper.toWritableArray(resolved))
+      } catch (error: RuntimeException) {
+        promise.reject(
+          UsageTrackingBridgeErrors.APP_METADATA_QUERY_FAILED,
+          "App metadata lookup failed",
           error,
         )
       }

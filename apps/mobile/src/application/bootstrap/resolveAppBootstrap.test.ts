@@ -5,6 +5,7 @@ import {
   UsageTrackingCompositionKind,
   type UsageTrackingComposition,
 } from '../../infrastructure/tracking/UsageTrackingComposition';
+import { noOpAppMetadataPort } from '../../infrastructure/tracking/testSupport/noOpAppMetadataPort';
 import {
   resolveAppBootstrap,
   resolvePermissionForCompletedOnboarding,
@@ -16,6 +17,7 @@ function androidComposition(
   return {
     kind: UsageTrackingCompositionKind.ANDROID_NATIVE,
     provider,
+    appMetadataPort: noOpAppMetadataPort,
   };
 }
 

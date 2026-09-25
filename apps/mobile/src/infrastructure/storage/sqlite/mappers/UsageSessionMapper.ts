@@ -74,7 +74,7 @@ INSERT INTO usage_sessions (
 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(id) DO UPDATE SET
   package_name = excluded.package_name,
-  app_display_name = excluded.app_display_name,
+  app_display_name = COALESCE(excluded.app_display_name, usage_sessions.app_display_name),
   platform = excluded.platform,
   start_time = excluded.start_time,
   end_time = excluded.end_time,

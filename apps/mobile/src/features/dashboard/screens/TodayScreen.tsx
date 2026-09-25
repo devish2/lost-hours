@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   AppState,
@@ -12,10 +12,14 @@ import {
 import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 
 import { useTodayLiveData } from '../../../app/providers/TodayLiveDataProvider';
+import type { TodayAppBreakdownItem } from '../../../application/models/TodayAppBreakdownItem';
 import type { TodayDashboardModel } from '../../../application/models/TodayDashboardModel';
+import type { ExplicitActivityClassification } from '../../../domain/classification/appUserClassificationRule';
+import { TodayAppClassificationChooserModal } from '../components/TodayAppClassificationChooserModal';
 import { ClassificationRow } from '../../../shared/components/ClassificationRow';
 import { MetricCard, MetricCardList } from '../../../shared/components/MetricCard';
 import { PlatformLostTimeRow } from '../../../shared/components/PlatformLostTimeRow';
+import { TodayAppBreakdownRow } from '../../../shared/components/TodayAppBreakdownRow';
 import { PrimaryButton } from '../../../shared/components/PrimaryButton';
 import { ScreenScaffold } from '../../../shared/components/ScreenScaffold';
 import { SectionHeader } from '../../../shared/components/SectionHeader';
@@ -34,9 +38,13 @@ const CLASSIFICATION_ROWS = [
 function TodayDashboardContent({
   dashboard,
   colors,
+  onPressAppClassification,
+  classifyingPackageName,
 }: {
   dashboard: TodayDashboardModel;
   colors: ReturnType<typeof useThemedScreenColors>;
+  onPressAppClassification?: (item: TodayAppBreakdownItem) => void;
+  classifyingPackageName?: string | null;
 }) {
   const classificationValues: Record<
     (typeof CLASSIFICATION_ROWS)[number]['key'],
@@ -86,6 +94,30 @@ function TodayDashboardContent({
         ))}
       </View>
 
+      <SectionHeader title="Apps" colors={colors} />
+      <View
+        style={[
+          styles.panel,
+          { backgroundColor: colors.card, borderColor: colors.border },
+        ]}
+        accessibilityLabel="Today apps breakdown">
+        {dashboard.apps.length === 0 ? (
+          <Text style={[styles.helperText, { color: colors.textSecondary }]}>
+            No app usage recorded yet today.
+          </Text>
+        ) : (
+          dashboard.apps.map(item => (
+            <TodayAppBreakdownRow
+              key={item.packageName}
+              item={item}
+              colors={colors}
+              onPressClassification={onPressAppClassification}
+              classificationMutating={classifyingPackageName === item.packageName}
+            />
+          ))
+        )}
+      </View>
+
       <SectionHeader title="Lost by platform" colors={colors} />
       <View
         style={[
@@ -114,8 +146,83 @@ function TodayDashboardContent({
 export function TodayScreen() {
   const colors = useThemedScreenColors();
   const isFocused = useIsFocused();
-  const { uiState, isRefreshing, refreshToday, openUsageAccessSettings } =
-    useTodayLiveData();
+  const {
+    uiState,
+    isRefreshing,
+    refreshToday,
+    openUsageAccessSettings,
+    getExplicitAppClassification,
+    setAppClassification,
+    clearAppClassification,
+    classifyingPackageName,
+    classificationMutationError,
+    clearClassificationMutationError,
+  } = useTodayLiveData();
+
+  const [chooserItem, setChooserItem] = useState<TodayAppBreakdownItem | null>(
+    null,
+  );
+  const [explicitAppClassification, setExplicitAppClassification] =
+    useState<ExplicitActivityClassification | null>(null);
+  const [loadingExplicitState, setLoadingExplicitState] = useState(false);
+
+  const openClassificationChooser = useCallback(
+    (item: TodayAppBreakdownItem) => {
+      clearClassificationMutationError();
+      setChooserItem(item);
+      setExplicitAppClassification(null);
+      setLoadingExplicitState(true);
+      getExplicitAppClassification(item.packageName)
+        .then(rule => {
+          setExplicitAppClassification(rule);
+        })
+        .catch(() => {
+          setExplicitAppClassification(null);
+        })
+        .finally(() => {
+          setLoadingExplicitState(false);
+        });
+    },
+    [clearClassificationMutationError, getExplicitAppClassification],
+  );
+
+  const closeClassificationChooser = useCallback(() => {
+    if (classifyingPackageName != null) {
+      return;
+    }
+    setChooserItem(null);
+    setExplicitAppClassification(null);
+    setLoadingExplicitState(false);
+  }, [classifyingPackageName]);
+
+  const handleSelectClassification = useCallback(
+    async (classification: ExplicitActivityClassification) => {
+      if (chooserItem == null) {
+        return;
+      }
+      const packageName = chooserItem.packageName;
+      const saved = await setAppClassification(packageName, classification);
+      if (saved) {
+        setChooserItem(current =>
+          current?.packageName === packageName ? null : current,
+        );
+      }
+    },
+    [chooserItem, setAppClassification],
+  );
+
+  const handleClearClassification = useCallback(async () => {
+    if (chooserItem == null) {
+      return;
+    }
+    const packageName = chooserItem.packageName;
+    const cleared = await clearAppClassification(packageName);
+    if (cleared) {
+      setChooserItem(current =>
+        current?.packageName === packageName ? null : current,
+      );
+    }
+  }, [chooserItem, clearAppClassification]);
 
   useFocusEffect(
     useCallback(() => {
@@ -141,6 +248,7 @@ export function TodayScreen() {
   );
 
   return (
+    <>
     <ScreenScaffold scroll refreshControl={refreshControl}>
       <Text style={[styles.screenTitle, { color: colors.textPrimary }]}>
         Today
@@ -199,19 +307,62 @@ export function TodayScreen() {
         </View>
       ) : null}
 
+      {classificationMutationError != null ? (
+        <View style={styles.statusBlock}>
+          <Text style={[styles.helperText, { color: colors.textSecondary }]}>
+            {classificationMutationError}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={clearClassificationMutationError}>
+            <Text style={[styles.linkText, { color: colors.textPrimary }]}>
+              Dismiss
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+
       {uiState.phase === 'empty' ? (
         <>
           <Text style={[styles.helperText, { color: colors.textSecondary }]}>
             No app usage recorded yet today on this device.
           </Text>
-          <TodayDashboardContent dashboard={uiState.dashboard} colors={colors} />
+          <TodayDashboardContent
+            dashboard={uiState.dashboard}
+            colors={colors}
+            onPressAppClassification={
+              uiState.dashboard.apps.length > 0 ? openClassificationChooser : undefined
+            }
+            classifyingPackageName={classifyingPackageName}
+          />
         </>
       ) : null}
 
       {uiState.phase === 'success' ? (
-        <TodayDashboardContent dashboard={uiState.dashboard} colors={colors} />
+        <TodayDashboardContent
+          dashboard={uiState.dashboard}
+          colors={colors}
+          onPressAppClassification={openClassificationChooser}
+          classifyingPackageName={classifyingPackageName}
+        />
       ) : null}
     </ScreenScaffold>
+    <TodayAppClassificationChooserModal
+      visible={chooserItem != null}
+      item={chooserItem}
+      explicitAppClassification={explicitAppClassification}
+      loadingExplicitState={loadingExplicitState}
+      mutating={classifyingPackageName === chooserItem?.packageName}
+      colors={colors}
+      onSelect={classification => {
+        handleSelectClassification(classification).catch(() => {});
+      }}
+      onClear={() => {
+        handleClearClassification().catch(() => {});
+      }}
+      onCancel={closeClassificationChooser}
+    />
+    </>
   );
 }
 

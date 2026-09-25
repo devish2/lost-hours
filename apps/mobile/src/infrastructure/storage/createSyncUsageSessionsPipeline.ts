@@ -2,6 +2,7 @@ import { CollectUsageSessions } from '../../application/use-cases/CollectUsageSe
 import { SyncUsageSessions } from '../../application/use-cases/SyncUsageSessions';
 import { DefaultUsageSessionBuilder } from '../../domain/session/DefaultUsageSessionBuilder';
 import type { SessionBuilder } from '../../domain/session/SessionBuilder';
+import type { AppMetadataPort } from '../../domain/usage/AppMetadataPort';
 import type { UsageEventsPort } from '../../domain/usage/UsageEventsPort';
 import type { UsageSessionRepository } from '../../domain/repositories/UsageSessionRepository';
 
@@ -9,6 +10,7 @@ export type SyncUsageSessionsPipelineDeps = {
   usageEventsPort: UsageEventsPort;
   usageSessionRepository: UsageSessionRepository;
   sessionBuilder?: SessionBuilder;
+  appMetadataPort?: AppMetadataPort | null;
 };
 
 /** Wires collect + persist without starting automatic sync. */
@@ -24,5 +26,6 @@ export function createSyncUsageSessionsPipeline(
   return new SyncUsageSessions(
     collectUsageSessions,
     deps.usageSessionRepository,
+    deps.appMetadataPort ?? null,
   );
 }

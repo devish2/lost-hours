@@ -43,6 +43,7 @@ describe('GetTodayDashboard', () => {
     expect(model.totalLostMs).toBe(0);
     expect(model.lostSessionCount).toBe(0);
     expect(model.lostByPlatform).toEqual([]);
+    expect(model.apps).toEqual([]);
   });
 
   it('does not mutate input sessions', () => {

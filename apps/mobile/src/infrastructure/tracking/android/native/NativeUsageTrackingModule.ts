@@ -1,3 +1,4 @@
+import type { NativeAppMetadata } from './NativeAppMetadata';
 import type { NativeUsageEvent } from './NativeUsageEvent';
 
 /** TypeScript contract for the Android native usage-tracking module (RN name: LostHoursUsageTracking). */
@@ -10,4 +11,8 @@ export interface NativeUsageTrackingModule {
     fromTimestamp: number,
     toTimestamp: number,
   ): Promise<readonly NativeUsageEvent[]>;
+
+  getAppMetadata(
+    packageNames: readonly string[],
+  ): Promise<readonly NativeAppMetadata[]>;
 }
