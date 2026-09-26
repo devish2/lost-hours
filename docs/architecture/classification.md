@@ -109,4 +109,6 @@ The Today app row classification control calls **`AppUserClassification`** throu
 - **Storage** stores rules and session classifications; it does not run the classifier.
 - **UI** displays classifications produced upstream; it does not re-implement rule logic.
 
+Historical analytics (Day 4) reuse the same **current-effective** step; see ADR [0007](../decisions/0007-historical-classification-current-effective.md) and [historical-analytics.md](./historical-analytics.md).
+
 See unit tests: `RuleBasedActivityClassifier.test.ts`.

@@ -117,7 +117,7 @@ describe('TodayScreen', () => {
     expect(content).not.toContain('2h 41m');
     expect(content).toContain('Apps');
     expect(content).toContain('Snapchat');
-    expect(content).toContain('Waste');
+    expect(content).toContain('Lost ▾');
   });
 
   it('shows permission-required state', async () => {

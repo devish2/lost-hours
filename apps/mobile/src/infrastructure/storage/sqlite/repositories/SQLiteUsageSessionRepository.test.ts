@@ -9,6 +9,11 @@ import {
   usageSessionToInsertParams,
 } from '../mappers/UsageSessionMapper';
 import type { UsageSessionRow } from '../mappers/rows';
+import { GetBaselineProgress } from '../../../../application/queries/GetBaselineProgress';
+import {
+  getLocalCalendarDayStart,
+  getNextLocalCalendarDayStart,
+} from '../../../../shared/time/localCalendarDay';
 import { SQLiteUsageSessionRepository } from './SQLiteUsageSessionRepository';
 
 function queryResult(rows: Record<string, Scalar>[]): QueryResult {
@@ -103,6 +108,26 @@ function createMockExecutor() {
         return queryResult(
           matched as unknown as Record<string, Scalar>[],
         );
+      }
+      if (
+        normalized.includes('FROM usage_sessions') &&
+        normalized.includes('ORDER BY start_time ASC') &&
+        !normalized.includes('WHERE')
+      ) {
+        const matched = [...rows.values()].sort((a, b) => {
+          if (a.start_time !== b.start_time) {
+            return a.start_time - b.start_time;
+          }
+          if (a.end_time !== b.end_time) {
+            return a.end_time - b.end_time;
+          }
+          const packageCompare = a.package_name.localeCompare(b.package_name);
+          if (packageCompare !== 0) {
+            return packageCompare;
+          }
+          return a.id.localeCompare(b.id);
+        });
+        return queryResult(matched as unknown as Record<string, Scalar>[]);
       }
       if (normalized.startsWith('SELECT * FROM usage_sessions')) {
         const from = params?.[0] as number;
@@ -212,5 +237,33 @@ describe('SQLiteUsageSessionRepository', () => {
     const params = usageSessionToInsertParams(session, 123);
     expect(params[0]).toBe('mapper-check');
     expect(params[11]).toBe(session.trackingSource);
+  });
+
+  it('findAllChronological supports baseline progress across repository recreation', async () => {
+    const { executor } = createMockExecutor();
+    const anchor = getLocalCalendarDayStart(
+      new Date(2026, 3, 1, 0, 0, 0).getTime(),
+    );
+    let dayStart = anchor;
+    const writer = new SQLiteUsageSessionRepository(executor);
+    for (let i = 0; i < 4; i += 1) {
+      await writer.save(
+        createUsageSession({
+          id: `baseline-${i}`,
+          startTime: dayStart + 1_000,
+          endTime: dayStart + 5_000,
+          durationMs: 4_000,
+        }),
+      );
+      dayStart = getNextLocalCalendarDayStart(dayStart);
+    }
+    const first = await new GetBaselineProgress({
+      usageSessionRepository: writer,
+    }).execute();
+    const recreated = await new GetBaselineProgress({
+      usageSessionRepository: new SQLiteUsageSessionRepository(executor),
+    }).execute();
+    expect(recreated).toEqual(first);
+    expect(recreated.observedCalendarDays).toBe(4);
   });
 });

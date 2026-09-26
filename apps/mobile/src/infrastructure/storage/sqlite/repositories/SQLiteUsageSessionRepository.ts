@@ -100,6 +100,16 @@ export class SQLiteUsageSessionRepository implements UsageSessionRepository {
     );
   }
 
+  async findAllChronological(): Promise<UsageSession[]> {
+    const result = await this.db.execute(
+      `SELECT * FROM usage_sessions
+       ORDER BY start_time ASC, end_time ASC, package_name ASC, id ASC`,
+    );
+    return result.rows.map(row =>
+      usageSessionRowToDomain(rowToUsageSessionRow(row)),
+    );
+  }
+
   async deleteById(id: string): Promise<void> {
     await this.db.execute('DELETE FROM usage_sessions WHERE id = ?', [id]);
   }

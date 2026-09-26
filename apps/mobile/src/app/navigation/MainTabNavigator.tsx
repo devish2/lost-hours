@@ -1,7 +1,7 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
-import { HistoryScreen } from '../../features/history/screens/HistoryScreen';
 import { TodayScreen } from '../../features/dashboard/screens/TodayScreen';
+import { HistoryStackNavigator } from './HistoryStackNavigator';
 import { SettingsScreen } from '../../features/settings/screens/SettingsScreen';
 import type { MainTabParamList } from './navigationTypes';
 import { MainTabRoutes } from './routeNames';
@@ -22,8 +22,8 @@ export function MainTabNavigator() {
       />
       <Tab.Screen
         name={MainTabRoutes.History}
-        component={HistoryScreen}
-        options={{ title: 'History' }}
+        component={HistoryStackNavigator}
+        options={{ title: 'History', headerShown: false }}
       />
       <Tab.Screen
         name={MainTabRoutes.Settings}

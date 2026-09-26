@@ -1,10 +1,15 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
 
-import { MainTabRoutes, RootRoutes } from './routeNames';
+import { HistoryRoutes, MainTabRoutes, RootRoutes } from './routeNames';
+
+export type HistoryStackParamList = {
+  [HistoryRoutes.HistoryHome]: undefined;
+  [HistoryRoutes.DayDetail]: { dayStartTimestamp: number };
+};
 
 export type MainTabParamList = {
   [MainTabRoutes.Today]: undefined;
-  [MainTabRoutes.History]: undefined;
+  [MainTabRoutes.History]: NavigatorScreenParams<HistoryStackParamList>;
   [MainTabRoutes.Settings]: undefined;
 };
 

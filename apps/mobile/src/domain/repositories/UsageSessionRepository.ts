@@ -27,5 +27,7 @@ export interface UsageSessionRepository {
     fromTimestamp: number,
     toTimestamp: number,
   ): Promise<UsageSession[]>;
+  /** All persisted sessions in stable read order (baseline / full-history reads). */
+  findAllChronological(): Promise<UsageSession[]>;
   deleteById(id: string): Promise<void>;
 }

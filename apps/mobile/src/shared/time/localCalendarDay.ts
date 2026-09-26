@@ -13,6 +13,12 @@ export function getLocalCalendarDayStart(timestampMs: number): number {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
 }
 
+/** Local start of the calendar day before the day containing `timestampMs`. */
+export function getPreviousLocalCalendarDayStart(timestampMs: number): number {
+  const dayStart = getLocalCalendarDayStart(timestampMs);
+  return getLocalCalendarDayStart(dayStart - 1);
+}
+
 /** Local start of the next calendar day after `timestampMs`. */
 export function getNextLocalCalendarDayStart(timestampMs: number): number {
   const date = new Date(timestampMs);

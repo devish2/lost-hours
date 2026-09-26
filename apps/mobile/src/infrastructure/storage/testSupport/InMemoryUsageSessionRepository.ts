@@ -78,6 +78,12 @@ export class InMemoryUsageSessionRepository implements UsageSessionRepository {
       .map(session => ({ ...session, app: { ...session.app } }));
   }
 
+  async findAllChronological(): Promise<UsageSession[]> {
+    return [...this.sessions.values()]
+      .sort(compareUsageSessionsForReadOrder)
+      .map(session => ({ ...session, app: { ...session.app } }));
+  }
+
   async deleteById(id: string): Promise<void> {
     this.sessions.delete(id);
   }

@@ -7,7 +7,9 @@ import ReactTestRenderer, { act } from 'react-test-renderer';
 import { NavigationContainer } from '@react-navigation/native';
 import { AppState, Text } from 'react-native';
 
+import { HistoryLiveDataProvider } from '../providers/HistoryLiveDataProvider';
 import { TodayLiveDataProvider } from '../providers/TodayLiveDataProvider';
+import { HistoryLiveService } from '../../application/history/HistoryLiveService';
 import { UsageTrackingProvider } from '../providers/UsageTrackingContext';
 import { TodayLiveDashboardService } from '../../application/today/TodayLiveDashboardService';
 import { UsageTrackingCompositionKind } from '../../infrastructure/tracking/UsageTrackingComposition';
@@ -62,6 +64,23 @@ describe('MainTabNavigator', () => {
       openUsageAccessSettings: jest.fn(async () => {}),
     } as unknown as TodayLiveDashboardService;
 
+    const historyService = {
+      loadHistory: jest.fn(async () => ({
+        nowTimestamp: Date.now(),
+        model: {
+          fromTimestamp: 0,
+          toTimestamp: 1,
+          baseline: {
+            status: 'COLLECTING' as const,
+            observedCalendarDays: 0,
+            targetCalendarDays: 7,
+            trackedDurationMs: 0,
+          },
+          days: [],
+        },
+      })),
+    } as unknown as HistoryLiveService;
+
     let tree!: ReactTestRenderer.ReactTestRenderer;
     await act(async () => {
       tree = ReactTestRenderer.create(
@@ -72,9 +91,11 @@ describe('MainTabNavigator', () => {
             appMetadataPort: noOpAppMetadataPort,
           }}>
           <TodayLiveDataProvider service={service}>
-            <NavigationContainer>
-              <MainTabNavigator />
-            </NavigationContainer>
+            <HistoryLiveDataProvider service={historyService}>
+              <NavigationContainer>
+                <MainTabNavigator />
+              </NavigationContainer>
+            </HistoryLiveDataProvider>
           </TodayLiveDataProvider>
         </UsageTrackingProvider>,
       );

@@ -22,6 +22,7 @@ export function TodayAppBreakdownRow({
   const classificationLabel = formatActivityClassificationLabel(
     item.classification,
     item.hasMixedClassification,
+    { wasteLabel: 'Lost' },
   );
 
   const classificationControlLabel = `Change classification for ${label}. Current classification: ${classificationLabel}.`;

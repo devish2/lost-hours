@@ -9,3 +9,8 @@ export const MainTabRoutes = {
   History: 'History',
   Settings: 'Settings',
 } as const;
+
+export const HistoryRoutes = {
+  HistoryHome: 'HistoryHome',
+  DayDetail: 'DayDetail',
+} as const;

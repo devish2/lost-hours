@@ -1,9 +1,15 @@
 import { ActivityClassification } from '../../domain/classification/ActivityClassification';
 
+export type FormatActivityClassificationLabelOptions = {
+  /** Day Detail and receipts use "Lost" for WASTE; Today keeps "Waste". */
+  wasteLabel?: 'Waste' | 'Lost';
+};
+
 /** Neutral presentation labels for effective activity classification. */
 export function formatActivityClassificationLabel(
   classification: ActivityClassification | undefined,
   hasMixedClassification: boolean,
+  options: FormatActivityClassificationLabelOptions = {},
 ): string {
   if (hasMixedClassification) {
     return 'Mixed';
@@ -16,7 +22,7 @@ export function formatActivityClassificationLabel(
     case ActivityClassification.LEISURE:
       return 'Leisure';
     case ActivityClassification.WASTE:
-      return 'Waste';
+      return options.wasteLabel === 'Lost' ? 'Lost' : 'Waste';
     case ActivityClassification.UNKNOWN:
     default:
       return 'Unknown';

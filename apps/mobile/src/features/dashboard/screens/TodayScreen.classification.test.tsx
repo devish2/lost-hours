@@ -259,7 +259,7 @@ describe('TodayScreen classification editing (D3.10)', () => {
       SNAPCHAT,
       ActivityClassification.WASTE,
     );
-    expect(textContent(tree)).toContain('Waste');
+    expect(textContent(tree)).toContain('Lost ▾');
     expect(textContent(tree)).toContain('Lost Hours 30m');
   });
 

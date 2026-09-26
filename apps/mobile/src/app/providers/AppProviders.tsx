@@ -5,6 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { OnboardingStateProvider } from './OnboardingStateContext';
+import { HistoryLiveDataProvider } from './HistoryLiveDataProvider';
 import { TodayLiveDataProvider } from './TodayLiveDataProvider';
 import { UsageTrackingProvider } from './UsageTrackingContext';
 
@@ -21,12 +22,14 @@ export function AppProviders({ children }: AppProvidersProps) {
         <OnboardingStateProvider>
           <UsageTrackingProvider>
             <TodayLiveDataProvider>
-              <NavigationContainer>
-                <StatusBar
-                  barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-                />
-                {children}
-              </NavigationContainer>
+              <HistoryLiveDataProvider>
+                <NavigationContainer>
+                  <StatusBar
+                    barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+                  />
+                  {children}
+                </NavigationContainer>
+              </HistoryLiveDataProvider>
             </TodayLiveDataProvider>
           </UsageTrackingProvider>
         </OnboardingStateProvider>

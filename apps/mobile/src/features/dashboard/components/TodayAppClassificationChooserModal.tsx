@@ -44,6 +44,7 @@ export function TodayAppClassificationChooserModal({
   const effectiveLabel = formatActivityClassificationLabel(
     item.classification,
     item.hasMixedClassification,
+    { wasteLabel: 'Lost' },
   );
 
   return (
